@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "cli-client"
+		},
+		{
+			"path": "server"
+		}
+	]
+}

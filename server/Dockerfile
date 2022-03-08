@@ -12,6 +12,12 @@ ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 
-RUN mkdir -p /usr/src/casino-war
+RUN mkdir -p /usr/src/casino-war/server
 
-WORKDIR /usr/src/casino-war
+WORKDIR /usr/src/casino-war/server
+
+EXPOSE 8080
+
+# COPY . .
+
+# RUN go build
