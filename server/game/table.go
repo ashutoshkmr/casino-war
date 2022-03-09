@@ -1,5 +1,10 @@
 package game
 
+import (
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
 type DrawCardsResult struct {
 	PlayerCard  string         `json:"playerCard,omitempty"`
 	DealerCard  string         `json:"dealerCard,omitempty"`
@@ -16,22 +21,23 @@ const (
 )
 
 type CasinoTable struct {
-	Deck     Deck
-	Player   Player
-	Dealer   Player
-	Bet      int
-	IsActive bool
+	ID primitive.ObjectID `bson:"_id,omitempty"`
+	Deck     Deck			`bson:"deck,omitempty"`
+	Player   Player			`bson:"player,omitempty"`
+	Dealer   Player			`bson:"dealer,omitempty"`
+	Bet      int			`bson:"bet,omitempty"`
+	GameId   uuid.UUID		`bson:"gameId,omitempty"`
 }
 
-func NewTable(player, dealer Player) CasinoTable {
+func NewTable(player, dealer Player, gameId uuid.UUID) CasinoTable {
 	deck := NewDeck()
 	deck.Shuffle()
 	table := CasinoTable{
-		deck,
-		player,
-		dealer,
-		0,
-		true,
+		Deck :deck,
+		Player:player,
+		Dealer: dealer,
+		Bet: 0,
+		GameId: gameId,
 	}
 	return table
 }

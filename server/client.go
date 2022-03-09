@@ -13,9 +13,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson"
 )
-
-var gameMap = make(map[uuid.UUID]game.CasinoTable)
 
 const (
 	writeWait = 10 * time.Second
@@ -129,7 +128,14 @@ func handleMessage(c *Client, msg []byte) {
 		panic(err)
 	}
 
-	table, ok := gameMap[c.clientId]
+	ok := false
+
+	var table game.CasinoTable
+
+	if parsedMsg.Command != StartGame {
+		table = getTable(c.clientId)
+		ok = true
+	}
 
 	switch parsedMsg.Command {
 	case StartGame:
@@ -190,7 +196,7 @@ func handleMessage(c *Client, msg []byte) {
 	}
 
 	if ok {
-		gameMap[c.clientId] = table
+		updateTable(table)
 	}
 
 	c.hub.broadcast <- []byte(res)
@@ -201,6 +207,24 @@ func startGame(initialChipsAmount int, clientId uuid.UUID) {
 	player := game.Player{Chips: initialChipsAmount, Score: 0}
 	// Assuming dealer has enough chips to handle bet of any size
 	dealer := game.Player{Chips: math.MaxInt32, Score: 0}
-	table := game.NewTable(player, dealer)
-	gameMap[clientId] = table
+	table := game.NewTable(player, dealer, clientId)
+
+	_, err := collection.InsertOne(ctx, table)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func getTable(gameId uuid.UUID) game.CasinoTable {
+	var table game.CasinoTable
+	result := collection.FindOne(ctx, bson.D{{Key: "gameId", Value: gameId}})
+	result.Decode(&table)
+	return table
+}
+
+func updateTable(table game.CasinoTable) {
+	_, err := collection.ReplaceOne(ctx, bson.M{"_id": table.ID}, table)
+	if err != nil {
+		log.Println(err)
+	}
 }
