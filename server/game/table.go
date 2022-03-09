@@ -1,18 +1,25 @@
 package game
 
-type DrawCardsResult int
+type DrawCardsResult struct {
+	PlayerCard  string         `json:"playerCard,omitempty"`
+	DealerCard  string         `json:"dealerCard,omitempty"`
+	PlayerChips int            `json:"playerChips,omitempty"`
+	Status      DrawCardStatus `json:"status,omitempty"`
+}
+
+type DrawCardStatus int
 
 const (
-	Won  DrawCardsResult = 1
-	Loss DrawCardsResult = -1
-	Tie  DrawCardsResult = 0
+	Won  DrawCardStatus = 1
+	Loss DrawCardStatus = -1
+	Tie  DrawCardStatus = 0
 )
 
 type CasinoTable struct {
-	Deck   Deck
-	Player Player
-	Dealer Player
-	Bet    int
+	Deck     Deck
+	Player   Player
+	Dealer   Player
+	Bet      int
 	IsActive bool
 }
 
@@ -38,7 +45,7 @@ func (table *CasinoTable) CanPlaceBet(betAmount int) bool {
 	return table.Player.Chips >= betAmount
 }
 
-func (table *CasinoTable) DrawCards() (string, string, DrawCardsResult, error) {
+func (table *CasinoTable) DrawCards() (DrawCardsResult, error) {
 	playerCard := table.Deck[len(table.Deck)-1]
 	dealerCard := table.Deck[len(table.Deck)-2]
 	table.Deck = table.Deck[:len(table.Deck)-2]
@@ -58,7 +65,12 @@ func (table *CasinoTable) DrawCards() (string, string, DrawCardsResult, error) {
 		table.Dealer.Score++
 	}
 
-	return playerCard.GetCardName(), dealerCard.GetCardName(), result, nil
+	return DrawCardsResult{
+		playerCard.GetCardName(),
+		dealerCard.GetCardName(),
+		table.Player.Chips,
+		result,
+	}, nil
 }
 
 func (table *CasinoTable) Surrender() {
@@ -67,7 +79,11 @@ func (table *CasinoTable) Surrender() {
 	table.Bet = 0
 }
 
-func (table *CasinoTable) GoToWar() (string, string, DrawCardsResult, error) {
+func (table *CasinoTable) CanGoToWar() bool {
+	return table.Player.Chips >= table.Bet
+}
+
+func (table *CasinoTable) GoToWar() (DrawCardsResult, error) {
 	warBet := table.Bet * 3
 	table.Player.Chips -= table.Bet
 	table.Dealer.Chips -= table.Bet
@@ -100,14 +116,20 @@ func (table *CasinoTable) GoToWar() (string, string, DrawCardsResult, error) {
 		table.Player.Chips += table.Bet * 10
 		table.Dealer.Chips -= table.Bet * 10
 		table.Player.Score++
+		// Won by second tie, can be displayed better on client
+		result = Won
 	}
 	table.Bet = 0
 
-	return playerCard.GetCardName(), dealerCard.GetCardName(), result, nil
-
+	return DrawCardsResult{
+		playerCard.GetCardName(),
+		dealerCard.GetCardName(),
+		table.Player.Chips,
+		result,
+	}, nil
 }
 
-func compareCards(first, second Card) DrawCardsResult {
+func compareCards(first, second Card) DrawCardStatus {
 	if first.Rank < second.Rank {
 		return Loss
 	}

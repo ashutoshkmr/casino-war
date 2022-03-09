@@ -1,7 +1,5 @@
 package client
 
-import "main/game"
-
 type SocketCommand int
 
 type Msg struct {
@@ -22,10 +20,18 @@ const (
 	Error
 )
 
-type DrawCardResult struct {
-	Content string        				`json:"content,omitempty"`
-	Command SocketCommand 				`json:"command,omitempty"`
-	Err     string        				`json:"err,omitempty"`
-	DrawResult 	string					`json:"drawResult,omitempty"`
-	Result 		game.DrawCardsResult	`json:"result,omitempty"`
+type DrawCardsResult struct {
+	PlayerCard	string			`json:"playerCard,omitempty"`
+	DealerCard	string			`json:"dealerCard,omitempty"`
+	PlayerChips	int				`json:"playerChips,omitempty"`
+	Status		DrawCardStatus	`json:"status,omitempty"`
 }
+
+
+type DrawCardStatus int
+
+const (
+	Won  DrawCardStatus = 1
+	Loss DrawCardStatus = -1
+	Tie  DrawCardStatus = 0
+)

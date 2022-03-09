@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"main/game"
 	"math"
@@ -128,9 +129,7 @@ func handleMessage(c *Client, msg []byte) {
 		panic(err)
 	}
 
-	table := gameMap[c.clientId]
-
-	log.Println(table)
+	table, ok := gameMap[c.clientId]
 
 	switch parsedMsg.Command {
 	case StartGame:
@@ -143,10 +142,8 @@ func handleMessage(c *Client, msg []byte) {
 
 		wsResponse = SocketMessage{Command: GameStarted}
 
-	// case PlaceBet:
-	// 	log.Println("PlaceBet : ", parsedMsg)
 	case DrawCard:
-		if !table.IsActive {
+		if !ok {
 			wsResponse = SocketMessage{Command: Error, Content: "Game doesn't exist or is not available anymore"}
 			break
 		}
@@ -162,34 +159,38 @@ func handleMessage(c *Client, msg []byte) {
 			wsResponse = SocketMessage{}
 
 			table.PlaceBet(betAmount)
-			playerCard, dealerCard, result, _ := table.DrawCards()
-			// y := DrawCardResult{
-			// 	Command:    DrawResult,
-			// 	DrawResult: fmt.Sprint(playerCard + "\t" + dealerCard),
-			// 	Result:     result,
-			// }
+			result, _ := table.DrawCards()
 
-			// res, _ := json.Marshal(y)
-			// c.hub.broadcast <- []byte(res)
-
+			j, _ := json.Marshal(result)
+			wsResponse = SocketMessage{Command: DrawResult, Content: string(j)}
 		}
 
 	case SurrenderGame:
-		log.Println("SurrenderGame : ", parsedMsg)
+		table.Surrender()
+		wsResponse = SocketMessage{Command: QuitGame, Content: fmt.Sprint(table.Player.Chips)}
 	case GoToWar:
-		log.Println("GoToWar : ", parsedMsg)
+		if table.CanGoToWar() {
+			result, _ := table.GoToWar()
+			j, _ := json.Marshal(result)
+			wsResponse = SocketMessage{Command: DrawResult, Content: string(j)}
+		} else {
+			wsResponse = SocketMessage{Command: Error, Content: "Cannot go to war"}
+		}
 	case QuitGame:
-		log.Println("Quit Game")
-		wsResponse = SocketMessage{Command: QuitGame}
+		wsResponse = SocketMessage{Command: QuitGame, Content: fmt.Sprint(table.Player.Chips)}
+
 	default:
 		wsResponse = SocketMessage{Command: Error, Content: "Invalid Message"}
-
 	}
 
 	res, err := json.Marshal(wsResponse)
 
 	if err != nil {
 		log.Println(err)
+	}
+
+	if ok {
+		gameMap[c.clientId] = table
 	}
 
 	c.hub.broadcast <- []byte(res)
