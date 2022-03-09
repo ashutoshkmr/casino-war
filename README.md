@@ -55,11 +55,20 @@ docker build . -t casino-war-server
 ## Run container with Shell
 
 ```sh
-docker run -p 8080:8080 -it -v ${PWD}:/usr/src/casino-war/server casino-war-server sh
+docker run -p 8080:8080 --network=host -it -v ${PWD}:/usr/src/casino-war/server casino-war-server sh
 ```
 
 ## Run application
 
 ```sh
 # todo
+```
+
+
+# Test game
+
+```sh
+cd server
+
+go test ./game -v
 ```

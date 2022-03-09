@@ -144,3 +144,4 @@ func compareCards(first, second Card) DrawCardStatus {
 	}
 	return Tie
 }
+
